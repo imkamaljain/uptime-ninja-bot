@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
-import pool from "./db.js";
+import pool from "../config/db.js";
+import { sendBotMessage } from "../utils/bot-utils.js";
 
 export async function checkWebsites(bot) {
 	const client = await pool.connect();
@@ -15,26 +16,20 @@ export async function checkWebsites(bot) {
 						"down",
 						monitor.id,
 					]);
-					bot.sendMessage(
+					sendBotMessage(
+						bot,
 						monitor.chat_id,
 						`⚠️ [${monitor.name}](${monitor.url}) is DOWN!`,
-						{
-							parse_mode: "Markdown",
-							disable_web_page_preview: true,
-						},
 					);
 				} else if (!isDown && monitor.status === "down") {
 					await client.query("UPDATE monitors SET status=$1 WHERE id=$2", [
 						"up",
 						monitor.id,
 					]);
-					bot.sendMessage(
+					sendBotMessage(
+						bot,
 						monitor.chat_id,
 						`✅ [${monitor.name}](${monitor.url}) is back UP!`,
-						{
-							parse_mode: "Markdown",
-							disable_web_page_preview: true,
-						},
 					);
 				}
 			} catch (err) {
@@ -43,13 +38,10 @@ export async function checkWebsites(bot) {
 						"down",
 						monitor.id,
 					]);
-					bot.sendMessage(
+					sendBotMessage(
+						bot,
 						monitor.chat_id,
 						`❌ [${monitor.name}](${monitor.url}) is not reachable!`,
-						{
-							parse_mode: "Markdown",
-							disable_web_page_preview: true,
-						},
 					);
 				}
 			}
