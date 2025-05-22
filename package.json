@@ -4,7 +4,8 @@
 	"description": "Monitor your website's uptime effortlessly with this bot on Telegram.",
 	"main": "index.js",
 	"scripts": {
-		"start": "nodemon index.js",
+		"start": "node index.js",
+		"dev": "nodemon index.js",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [],
@@ -12,11 +13,14 @@
 	"license": "ISC",
 	"type": "module",
 	"dependencies": {
+		"dayjs": "^1.11.13",
 		"dotenv": "^16.5.0",
-		"node-cron": "^4.0.5",
+		"node-cron": "^4.0.6",
 		"node-fetch": "^3.3.2",
 		"node-telegram-bot-api": "^0.66.0",
-		"pg": "^8.16.0"
+		"nodemailer": "^7.0.3",
+		"pg": "^8.16.0",
+		"ssl-checker": "^2.0.10"
 	},
 	"devDependencies": {
 		"nodemon": "^3.1.10"

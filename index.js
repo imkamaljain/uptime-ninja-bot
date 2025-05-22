@@ -1,8 +1,10 @@
+import dayjs from "dayjs";
 import dotenv from "dotenv";
 import cron from "node-cron";
 import TelegramBot from "node-telegram-bot-api";
 import { registerBotRoutes } from "./src/routes/bot-routes.js";
-import { checkWebsites } from "./src/services/bot-service.js";
+import { checkSSLCertificates } from "./src/services/ssl-monitor.js";
+import { checkWebsites } from "./src/services/website-monitor.js";
 
 dotenv.config();
 
@@ -18,21 +20,43 @@ registerBotRoutes(bot);
 		{ command: "removeall", description: "Remove all monitored URLs" },
 		{ command: "status", description: "Check status of URL" },
 		{ command: "list", description: "List all monitored URLs" },
+		{
+			command: "checkssl",
+			description: "Check SSL certificate status for a domain",
+		},
 		{ command: "alive", description: "Check if bot is running" },
 	]);
 })();
 
-const monitoringJob = cron.schedule(
-	"*/10 * * * *",
+const websiteMonitoringJob = cron.schedule(
+	"*/1 * * * *",
 	async () => {
 		try {
 			await checkWebsites(bot);
 			console.log(
-				`[${new Date().toISOString()}] Monitoring check completed successfully`,
+				`[${dayjs().format()}] Monitoring check completed successfully`,
+			);
+		} catch (error) {
+			console.error(`[${dayjs().format()}] Error in monitoring check:`, error);
+		}
+	},
+	{
+		scheduled: true,
+		timezone: "UTC",
+	},
+);
+
+const sslMonitoringJob = cron.schedule(
+	"0 0 * * *",
+	async () => {
+		try {
+			await checkSSLCertificates(bot);
+			console.log(
+				`[${dayjs().format()}] SSL certificate check completed successfully`,
 			);
 		} catch (error) {
 			console.error(
-				`[${new Date().toISOString()}] Error in monitoring check:`,
+				`[${dayjs().format()}] Error in SSL certificate check:`,
 				error,
 			);
 		}
@@ -43,14 +67,17 @@ const monitoringJob = cron.schedule(
 	},
 );
 
-monitoringJob.start();
+websiteMonitoringJob.start();
+sslMonitoringJob.start();
 
 process.on("SIGTERM", () => {
-	monitoringJob.stop();
+	websiteMonitoringJob.stop();
+	sslMonitoringJob.stop();
 	process.exit(0);
 });
 
 process.on("SIGINT", () => {
-	monitoringJob.stop();
+	websiteMonitoringJob.stop();
+	sslMonitoringJob.stop();
 	process.exit(0);
 });

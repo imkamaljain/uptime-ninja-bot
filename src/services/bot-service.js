@@ -1,55 +1,5 @@
-import fetch from "node-fetch";
 import pool from "../config/db.js";
-import { sendBotMessage } from "../utils/bot-utils.js";
-
-export async function checkWebsites(bot) {
-	const client = await pool.connect();
-	try {
-		const res = await client.query("SELECT * FROM monitors");
-		for (const monitor of res.rows) {
-			try {
-				const response = await fetch(monitor.url, { timeout: 5000 });
-				const isDown = !(response.status >= 200 && response.status < 400);
-
-				if (isDown && monitor.status !== "down") {
-					await client.query("UPDATE monitors SET status=$1 WHERE id=$2", [
-						"down",
-						monitor.id,
-					]);
-					sendBotMessage(
-						bot,
-						monitor.chat_id,
-						`⚠️ [${monitor.name}](${monitor.url}) is DOWN!`,
-					);
-				} else if (!isDown && monitor.status === "down") {
-					await client.query("UPDATE monitors SET status=$1 WHERE id=$2", [
-						"up",
-						monitor.id,
-					]);
-					sendBotMessage(
-						bot,
-						monitor.chat_id,
-						`✅ [${monitor.name}](${monitor.url}) is back UP!`,
-					);
-				}
-			} catch (err) {
-				if (monitor.status !== "down") {
-					await client.query("UPDATE monitors SET status=$1 WHERE id=$2", [
-						"down",
-						monitor.id,
-					]);
-					sendBotMessage(
-						bot,
-						monitor.chat_id,
-						`❌ [${monitor.name}](${monitor.url}) is not reachable!`,
-					);
-				}
-			}
-		}
-	} finally {
-		client.release();
-	}
-}
+import { checkDomain } from "../services/ssl-checker.js";
 
 export async function addMonitor(chatId, url, name) {
 	const client = await pool.connect();
@@ -59,9 +9,20 @@ export async function addMonitor(chatId, url, name) {
 			[chatId, url],
 		);
 		if (res.rowCount > 0) return false;
+
+		const sslCheck = await checkDomain(url);
+		const sslData = sslCheck.success ? sslCheck.data : {};
+
 		await client.query(
-			"INSERT INTO monitors (chat_id, url, name, status) VALUES ($1, $2, $3, $4)",
-			[chatId, url, name, "unknown"],
+			"INSERT INTO monitors (chat_id, name, url, status, ssl_valid_from, ssl_valid_to) VALUES ($1, $2, $3, $4, $5, $6)",
+			[
+				chatId,
+				name,
+				url,
+				"unknown",
+				sslData.validFrom || null,
+				sslData.validTo || null,
+			],
 		);
 		return true;
 	} finally {
@@ -102,3 +63,20 @@ export async function listMonitors(chatId) {
 		client.release();
 	}
 }
+
+export const updateSSLInfo = async (chatId, url, sslData) => {
+	const client = await pool.connect();
+	try {
+		const formattedUrl = url.startsWith("http") ? url : `https://${url}`;
+		await client.query(
+			"UPDATE monitors SET ssl_valid_from=$1, ssl_valid_to=$2 WHERE chat_id=$3 AND url=$4",
+			[sslData.validFrom, sslData.validTo, chatId, formattedUrl],
+		);
+		return true;
+	} catch (error) {
+		console.error("Error updating SSL info:", error);
+		return false;
+	} finally {
+		client.release();
+	}
+};

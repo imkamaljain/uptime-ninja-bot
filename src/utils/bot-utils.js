@@ -1,8 +1,13 @@
-export const sendBotMessage = (bot, chatId, message) => {
-	const defaultOptions = {
-		parse_mode: "Markdown",
-		disable_web_page_preview: true,
-	};
+const defaultOptions = {
+	parse_mode: "Markdown",
+	disable_web_page_preview: true,
+};
 
-	return bot.sendMessage(chatId, message, defaultOptions);
+export const sendBotMessage = (
+	bot,
+	chatId,
+	message,
+	options = defaultOptions,
+) => {
+	return bot.sendMessage(chatId, message, options);
 };
