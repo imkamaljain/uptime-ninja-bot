@@ -25,6 +25,35 @@ export async function saveUserDetails(id, userName) {
 	}
 }
 
+export async function getUserEmail(userId) {
+	const client = await pool.connect();
+	try {
+		const res = await client.query("SELECT email from users WHERE id = $1", [
+			userId,
+		]);
+		return res?.rows[0]?.email;
+	} catch (error) {
+		console.error("Error fetching user email:", error);
+	} finally {
+		client.release();
+	}
+}
+
+export async function saveUserEmail(userId, email) {
+	const client = await pool.connect();
+	try {
+		await client.query("UPDATE users SET email = $1 WHERE id = $2", [
+			email,
+			userId,
+		]);
+		console.log("User email saved successfully");
+	} catch (error) {
+		console.error("Error saving user email:", error);
+	} finally {
+		client.release();
+	}
+}
+
 export async function updateUserEmailPreference(userId, preference) {
 	const client = await pool.connect();
 	try {

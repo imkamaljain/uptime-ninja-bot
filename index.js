@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import dotenv from "dotenv";
 import cron from "node-cron";
 import TelegramBot from "node-telegram-bot-api";
+import { commandDescriptions } from "./src/config/command-descriptions.js";
 import { registerBotRoutes } from "./src/routes/bot-routes.js";
 import { checkSSLCertificates } from "./src/services/ssl-monitor.js";
 import { checkWebsites } from "./src/services/website-monitor.js";
@@ -13,19 +14,15 @@ const bot = new TelegramBot(token, { polling: true });
 
 registerBotRoutes(bot);
 
+const commands = Object.entries(commandDescriptions).map(
+	([command, description]) => ({
+		command,
+		description,
+	}),
+);
+
 (async () => {
-	await bot.setMyCommands([
-		{ command: "add", description: "Add URL to monitor" },
-		{ command: "remove", description: "Remove URL from monitoring" },
-		{ command: "removeall", description: "Remove all monitored URLs" },
-		{ command: "status", description: "Check status of URL" },
-		{ command: "list", description: "List all monitored URLs" },
-		{
-			command: "checkssl",
-			description: "Check SSL certificate status for a domain",
-		},
-		{ command: "alive", description: "Check if bot is running" },
-	]);
+	await bot.setMyCommands(commands);
 })();
 
 const websiteMonitoringJob = cron.schedule(

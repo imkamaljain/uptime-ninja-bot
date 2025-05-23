@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { commandDescriptions } from "../config/command-descriptions.js";
 import {
 	addMonitor,
 	listMonitors,
@@ -8,7 +9,9 @@ import {
 } from "../services/bot-service.js";
 import { checkDomain } from "../services/ssl-checker.js";
 import {
+	getUserEmail,
 	saveUserDetails,
+	saveUserEmail,
 	updateUserEmailPreference,
 } from "../services/user-service.js";
 import { sendBotMessage } from "../utils/bot-utils.js";
@@ -17,21 +20,32 @@ export const registerBotRoutes = (bot) => {
 	bot.onText(/\/start/, async (msg) => {
 		const chatId = msg.chat.id;
 		const userName = msg.from.username;
-		const description =
-			"Welcome to the Uptime Ninja Bot! 🤖.\n\n" +
-			"This bot is designed to help you keep track of your website's uptime. " +
-			"You can easily add URLs to monitor, check their status, and receive notifications if they go down.\n\n" +
-			"Here are some commands to get you started:\n" +
-			"/add - Add a new URL to monitor\n" +
-			"/remove <domain> - Remove a URL from monitoring\n" +
-			"/removeall - Clear all monitored URLs\n" +
-			"/status - Get the current status of a URL\n" +
-			"/list - View all monitored URLs\n" +
-			"/alive - Verify if the bot is active\n" +
-			"/checkssl - Check SSL certificate status for a domain";
+		const commandText = Object.entries(commandDescriptions)
+			.map(([command, description]) => {
+				return `/${command} - ${description}`;
+			})
+			.join("\n");
+		const description = `Welcome to the Uptime Ninja Bot! 🤖.\n\nThis bot is designed to help you keep track of your website's uptime. You can easily add URLs to monitor, check their status, and receive notifications if they go down.\n\nHere are some commands to get you started:\n${commandText}`;
 
 		await saveUserDetails(chatId, userName);
 		sendBotMessage(bot, chatId, description);
+
+		setTimeout(() => {
+			bot.sendMessage(
+				chatId,
+				"Would you like to receive email notifications?",
+				{
+					reply_markup: {
+						inline_keyboard: [
+							[
+								{ text: "Opt-in", callback_data: "email_opt_in" },
+								{ text: "Opt-out", callback_data: "email_opt_out" },
+							],
+						],
+					},
+				},
+			);
+		}, 1000);
 	});
 
 	bot.onText(/\/alive/, (msg) => {
@@ -167,12 +181,82 @@ export const registerBotRoutes = (bot) => {
 		const userId = callbackQuery.from.id;
 		const preference = callbackQuery.data === "email_opt_in";
 
-		await updateUserEmailPreference(userId, preference);
+		if (preference) {
+			const userEmail = await getUserEmail(chatId);
+			// Email does not exist, ask for email
+			if (!userEmail) {
+				bot.sendMessage(chatId, "Please enter your email address:");
+				bot.once("message", async (msg) => {
+					const email = msg.text;
+					if (validateEmail(email)) {
+						await saveUserEmail(chatId, email, true);
+						await updateUserEmailPreference(userId, preference);
+						sendBotMessage(
+							bot,
+							chatId,
+							`Your email preference has been updated to: ${preference ? "Opt-in" : "Opt-out"}`,
+						);
+					} else {
+						sendBotMessage(
+							bot,
+							chatId,
+							"Invalid email format. Please try again.",
+						);
+						return;
+					}
+				});
+			} else {
+				await updateUserEmailPreference(userId, preference);
+				sendBotMessage(
+					bot,
+					chatId,
+					`Your email preference has been updated to: ${preference ? "Opt-in" : "Opt-out"}`,
+				);
+			}
+		} else {
+			await updateUserEmailPreference(userId, preference);
+			sendBotMessage(
+				bot,
+				chatId,
+				`Your email preference has been updated to: ${preference ? "Opt-in" : "Opt-out"}`,
+			);
+		}
 
-		sendBotMessage(
-			bot,
-			chatId,
-			`Your email preference has been updated to: ${preference ? "Opt-in" : "Opt-out"}`,
-		);
+		// const userEmail = await getUserEmail(chatId);
+		// if (!userEmail) {
+		// 	// Email does not exist, ask for email
+		// 	if (preference) {
+		// 		bot.sendMessage(chatId, "Please enter your email address:");
+
+		// 		// Listen for the next message to capture the email
+		// 		bot.once("message", async (msg) => {
+		// 			const email = msg.text;
+		// 			if (validateEmail(email)) {
+		// 				await saveUserEmail(chatId, email, true);
+		// 			} else {
+		// 				sendBotMessage(
+		// 					bot,
+		// 					chatId,
+		// 					"Invalid email format. Please try again.",
+		// 				);
+		// 				return;
+		// 			}
+		// 		});
+		// 	}
+		// }
+
+		// await updateUserEmailPreference(userId, preference);
+
+		// sendBotMessage(
+		// 	bot,
+		// 	chatId,
+		// 	`Your email preference has been updated to: ${preference ? "Opt-in" : "Opt-out"}`,
+		// );
 	});
+
+	function validateEmail(email) {
+		const re =
+			/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i;
+		return re.test(String(email).toLowerCase());
+	}
 };

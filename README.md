@@ -16,6 +16,7 @@ Uptime Ninja Bot is a Telegram bot designed to help you monitor the uptime of yo
 - `/status` - Get the current status of a URL
 - `/list` - Get list all monitored URLs
 - `/alive` - Verify if the bot is active
+- `/checkssl` - Check SSL certificate for a URL
 
 ## Installation
 1. Clone the repository:
@@ -32,10 +33,12 @@ Uptime Ninja Bot is a Telegram bot designed to help you monitor the uptime of yo
    ```
 4. Create a `.env` file in the root directory and add your Telegram bot token:
    ```bash
-   TOKEN=your_telegram_bot_token
+   TELEGRAM_TOKEN=your_telegram_bot_token
    DATABASE_URL=your_database_url
+   EMAIL_USER=your_email_user
+   EMAIL_PASS=your_email_password
    ```
 5. Start the bot:
    ```bash
-   npm start
+   npm run dev
    ```
