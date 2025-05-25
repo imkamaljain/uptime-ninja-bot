@@ -30,7 +30,7 @@ const commands = Object.entries(commandDescriptions).map(
 })();
 
 const websiteMonitoringJob = cron.schedule(
-	"*/1 * * * *",
+	"*/5 * * * *",
 	async () => {
 		try {
 			await checkWebsites(bot);
