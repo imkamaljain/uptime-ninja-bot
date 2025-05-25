@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import dotenv from "dotenv";
+import express from "express";
 import cron from "node-cron";
 import TelegramBot from "node-telegram-bot-api";
 import { commandDescriptions } from "./src/config/command-descriptions.js";
@@ -8,6 +9,9 @@ import { checkSSLCertificates } from "./src/services/ssl-monitor.js";
 import { checkWebsites } from "./src/services/website-monitor.js";
 
 dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
@@ -78,3 +82,6 @@ process.on("SIGINT", () => {
 	sslMonitoringJob.stop();
 	process.exit(0);
 });
+
+app.get("/", (_req, res) => res.send("Bot is running"));
+app.listen(port, () => console.log(`Server listening on port ${port}`));
