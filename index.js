@@ -84,4 +84,12 @@ process.on("SIGINT", () => {
 });
 
 app.get("/", (_req, res) => res.send("Bot is running"));
-app.listen(port, () => console.log(`Server listening on port ${port}`));
+app.listen(port, () => {
+	console.log(`Server listening on port ${port}`);
+
+	setInterval(async () => {
+		await fetch(`${process.env.BASE_URL}`)
+			.then((_res) => console.log("Pinged /"))
+			.catch((err) => console.error(err.message));
+	}, 300000);
+});

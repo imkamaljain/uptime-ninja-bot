@@ -14,7 +14,7 @@ import {
 	saveUserEmail,
 	updateUserEmailPreference,
 } from "../services/user-service.js";
-import { sendBotMessage } from "../utils/bot-utils.js";
+import { sendBotMessage, sendTypingAction } from "../utils/bot-utils.js";
 
 export const registerBotRoutes = (bot) => {
 	bot.onText(/\/start/, async (msg) => {
@@ -55,10 +55,12 @@ export const registerBotRoutes = (bot) => {
 	bot.onText(/\/add/, async (msg) => {
 		const chatId = msg.chat.id;
 		sendBotMessage(bot, chatId, "Please enter the monitor name:");
+		sendTypingAction(bot, chatId);
 
 		bot.once("message", async (nameMsg) => {
 			const monitorName = nameMsg.text.trim();
 			sendBotMessage(bot, chatId, "Please enter the monitor URL:");
+			sendTypingAction(bot, chatId);
 
 			bot.once("message", async (urlMsg) => {
 				let monitorUrl = urlMsg.text.trim();
@@ -80,12 +82,14 @@ export const registerBotRoutes = (bot) => {
 	bot.onText(/\/remove (.+)/, async (msg, match) => {
 		const chatId = msg.chat.id;
 		const url = match[1];
+		sendTypingAction(bot, chatId);
 		await removeMonitor(chatId, url);
 		sendBotMessage(bot, chatId, `🗑️ Removed monitoring for ${url}`);
 	});
 
 	bot.onText(/\/removeall/, async (msg) => {
 		const chatId = msg.chat.id;
+		sendTypingAction(bot, chatId);
 		await removeAllMonitors(chatId);
 		sendBotMessage(bot, chatId, "🗑️ Removed all monitored URLs.");
 	});
@@ -93,6 +97,7 @@ export const registerBotRoutes = (bot) => {
 	bot.onText(/\/status/, async (msg) => {
 		const chatId = msg.chat.id;
 		sendBotMessage(bot, chatId, "Please enter the monitor URL:");
+		sendTypingAction(bot, chatId);
 
 		bot.once("message", async (url) => {
 			const monitorUrl = url.text.trim();
@@ -111,6 +116,7 @@ export const registerBotRoutes = (bot) => {
 
 	bot.onText(/\/list/, async (msg) => {
 		const chatId = msg.chat.id;
+		sendTypingAction(bot, chatId);
 		const monitors = await listMonitors(chatId);
 
 		if (monitors.length === 0) {
@@ -131,6 +137,7 @@ export const registerBotRoutes = (bot) => {
 
 	bot.onText(/\/checkssl/, async (msg) => {
 		const chatId = msg.chat.id;
+		sendTypingAction(bot, chatId);
 		sendBotMessage(bot, chatId, "Please enter the monitor URL:");
 		bot.once("message", async (url) => {
 			const monitorUrl = url.text.trim();

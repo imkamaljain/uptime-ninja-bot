@@ -11,3 +11,7 @@ export const sendBotMessage = (
 ) => {
 	return bot.sendMessage(chatId, message, options);
 };
+
+export const sendTypingAction = (bot, chatId) => {
+	return bot.sendChatAction(chatId, "typing");
+};
